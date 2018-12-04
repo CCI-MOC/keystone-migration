@@ -1,3 +1,5 @@
+BEGIN;
+
 -- migrate projects
 --
 -- This copies over all projects other than the 'services' and 'admin' project.
@@ -48,6 +50,22 @@ insert into keystone.local_user (user_id, domain_id, name)
 	local_user.name not in (select name from keystone.local_user)
 	;
 
+-- migrate passwords
+--
+-- Copy over passwords for any matching user ids in the target database.
+
+\! echo migrate passwords
+insert into keystone.password (
+		local_user_id, password, expires_at, self_service,
+		created_at, password_hash, created_at_int, expires_at_int
+	)
+	select c.id, a.password, a.expires_at, a.self_service,
+	a.created_at, a.password_hash, a.created_at_int, a.expires_at_int
+	from password as a
+	join local_user as b on b.id = a.local_user_id
+	join keystone.local_user as c on c.user_id = b.user_id
+	;
+
 -- migrate project membership
 \! echo migrate project membership
 set @member_role_id = (select id from keystone.role where name = '_member_');
@@ -61,3 +79,5 @@ insert into keystone.assignment (type, actor_id, target_id, role_id, inherited)
 	role.name = '_member_' and
 	project.name not in ('services', 'admin')
 	;
+
+COMMIT;
