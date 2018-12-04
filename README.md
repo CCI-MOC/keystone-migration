@@ -8,3 +8,6 @@ Usage:
 Where *keystone_old* is the name of the database **from** which you
 are migrating.  The migration script will insert data into a database
 named `keystone`.
+
+This script is *not* idempotent. It can only be run once; subsequent
+runs will fail with conflicts.
